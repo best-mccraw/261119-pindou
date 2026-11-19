@@ -13,8 +13,8 @@
   <view class="size-hint">每个维度为 10～100 的整数；尺寸越小，图案细节越少。</view>
   <view class="parameter-divider"/><ui-switch checked="{{labels}}" label="网格上显示色号文字" description="方便按编号找到对应拼豆" disabled="{{busy}}" bindchange="labels"/>
  </ui-card></view>
- <view class="generate-action"><ui-button bindpress="generate" loading="{{busy}}" disabled="{{busy || !path || !qualified}}">开始生成图纸 →</ui-button></view>
- <view class="status" wx:if="{{status}}">{{status}}</view><view class="ad-hint">完整观看广告后选择图片，本轮调整和保存不重复观看。</view><view class="fine disclaimer">通用颜色编号，非品牌色号；实际选豆请对照颜色。</view>
+ <view class="generate-action"><ui-button bindpress="generate" loading="{{busy}}" disabled="{{busy || !path}}">开始生成图纸 →</ui-button></view>
+ <view class="status" wx:if="{{status}}">{{status}}</view><view class="ad-hint">当前为真机测试版，选图与保存无需广告。</view><view class="fine disclaimer">通用颜色编号，非品牌色号；实际选豆请对照颜色。</view>
  <view wx:if="{{path}}" class="new-round"><ui-button variant="secondary" bindpress="newRound" disabled="{{busy}}">开始新的一轮</ui-button></view>
  <view class="create-footer">—　一格一颗，慢慢拼出小美好　—</view>
  <canvas type="2d" id="normalized" class="canvas-hidden"/><canvas type="2d" id="sample" class="canvas-hidden"/>

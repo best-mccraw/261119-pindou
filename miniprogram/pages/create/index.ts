@@ -1,37 +1,24 @@
 import { privacyMethods } from '../../services/privacy-gate';
 import { orientationTransform } from '../../core/orientation';
 import { dimensions, cropRect, quantize } from '../../core/pattern';
-import { privacy } from '../../services/album';
-import { RewardAd } from '../../services/ad';
+import { selectPhoto } from '../../services/photo-picker';
 import { message } from '../../services/api';
 import { canvasNode } from '../../services/render';
 import { session } from '../../services/session';
-Page({ ...privacyMethods, data: { qualified: false, busy: false, path: '', width: '30', height: '30', presets: [30, 50, 100], custom: false, labels: true, zoom: 1, dx: 0, dy: 0, status: '' }, ad: undefined as RewardAd | undefined, image: undefined as any, source: undefined as any, alive: true, drag: undefined as any,
-    onLoad() { this.alive = true; this.ad = new RewardAd(); }, onHide() { this.ad?.destroy(); this.ad = undefined; }, onShow() { if (!this.ad)
-        this.ad = new RewardAd(); }, onUnload() { this.alive = false; this.ad?.destroy(); this.image = undefined; this.source = undefined; },
-    async start() { if (this.data.busy)
-        return; this.setData({ busy: true, status: '正在准备广告…' }); try {
-        if (!this.data.qualified) {
-            await this.ad!.play();
-            if (!this.alive)
-                return;
-            this.setData({ qualified: true });
-        }
-        await this.choose();
-    }
-    catch (e) {
-        message(e);
-    }
-    finally {
-        if (this.alive)
-            this.setData({ busy: false, status: '' });
-    } },
-    async newRound() { if (this.data.busy)
-        return; this.setData({ qualified: false }); await this.start(); },
+Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '30', presets: [30, 50, 100], custom: false, labels: true, zoom: 1, dx: 0, dy: 0, status: '' }, image: undefined as any, source: undefined as any, alive: true, drag: undefined as any,
+    onLoad() { this.alive = true; },
+    onUnload() { this.alive = false; this.image = undefined; this.source = undefined; },
+    async start() {
+        if (this.data.busy) return;
+        this.setData({ busy: true, status: '正在打开相册…' });
+        try { await this.choose(); }
+        catch (e) { if (this.alive) message(e); }
+        finally { if (this.alive) this.setData({ busy: false, status: '' }); }
+    },
+    async newRound() { await this.start(); },
     async choose() {
         try {
-            await privacy();
-            const r = await wx.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album', 'camera'], sizeType: ['compressed'] });
+            const r = await selectPhoto();
             if (!this.alive)
                 return;
             const f = r.tempFiles[0];
@@ -89,7 +76,7 @@ Page({ ...privacyMethods, data: { qualified: false, busy: false, path: '', width
     touchStart(e: any) { if (!this.source)
         return; const t = e.touches[0]; this.drag = { x: t.clientX, y: t.clientY, dx: this.data.dx, dy: this.data.dy }; }, touchMove(e: any) { if (!this.drag || this.data.busy)
         return; const t = e.touches[0], r = cropRect(this.source.width, this.source.height, Number(this.data.width) || 30, Number(this.data.height) || 30, this.data.zoom); this.setData({ dx: this.drag.dx - (t.clientX - this.drag.x) * r.width / 300, dy: this.drag.dy - (t.clientY - this.drag.y) * r.height / 300 }); this.paint(); },
-    async generate() { if (this.data.busy || !this.data.qualified || !this.image)
+    async generate() { if (this.data.busy || !this.image)
         return; this.setData({ busy: true, status: '正在计算颜色与用豆数量…' }); try {
         const { width, height } = dimensions(this.data.width, this.data.height);
         await new Promise(r => setTimeout(r, 30));

@@ -1,5 +1,16 @@
-export async function privacy() { if (wx.requirePrivacyAuthorize)
-    await wx.requirePrivacyAuthorize({}); }
+// requirePrivacyAuthorize 是回调式接口，返回 void，必须显式等待回调。
+export function privacy(): Promise<void> {
+    if (!wx.requirePrivacyAuthorize) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        wx.requirePrivacyAuthorize({
+            success: () => resolve(),
+            fail: error => {
+                console.warn('[pindou][privacy-authorize]', error.errMsg);
+                reject(Error('隐私授权未完成，请同意图片使用说明后重试'));
+            }
+        });
+    });
+}
 export async function saveFile(path: string) { await privacy(); const setting = await wx.getSetting({}); if (setting.authSetting['scope.writePhotosAlbum'] === false) {
     const r = await wx.showModal({ title: '允许保存到相册', content: '请在设置中允许保存到相册，然后重试。', confirmText: '去设置' });
     if (r.confirm)

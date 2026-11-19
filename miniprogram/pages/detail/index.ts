@@ -2,11 +2,10 @@ import { privacyMethods } from '../../services/privacy-gate';
 import { Pattern, fromCells, PALETTE_VERSION } from '../../core/pattern';
 import { session } from '../../services/session';
 import { api, message } from '../../services/api';
-import { RewardAd } from '../../services/ad';
 import { exportFiles, renderFile } from '../../services/render';
 import { saveFile, removeFiles } from '../../services/album';
-Page({ ...privacyMethods, data: { title: '我的拼豆图纸', labels: true, busy: false, loading: true, error: false, preview: '', width: 0, height: 0, total: 0, counts: [] as Pattern['counts'], source: '', split: false }, pattern: undefined as Pattern | undefined, ad: undefined as RewardAd | undefined, files: [] as string[], previewFile: '', id: '', alive: true,
-    async onLoad(o: any) { this.alive = true; this.id = o.id || ''; this.setData({ source: o.source || 'library', labels: o.source==='generated' ? session.generatedLabels !== false : true }); this.ad = new RewardAd(); await this.load(); }, onUnload() { this.alive = false; this.ad?.destroy(); removeFiles([...this.files, this.previewFile]); },
+Page({ ...privacyMethods, data: { title: '我的拼豆图纸', labels: true, busy: false, loading: true, error: false, preview: '', width: 0, height: 0, total: 0, counts: [] as Pattern['counts'], source: '', split: false }, pattern: undefined as Pattern | undefined, files: [] as string[], previewFile: '', id: '', alive: true,
+    async onLoad(o: any) { this.alive = true; this.id = o.id || ''; this.setData({ source: o.source || 'library', labels: o.source==='generated' ? session.generatedLabels !== false : true }); await this.load(); }, onUnload() { this.alive = false; removeFiles([...this.files, this.previewFile]); },
     async load() { this.setData({ loading: true, error: false }); try {
         let p: Pattern;
         if (this.data.source === 'generated') {
@@ -59,19 +58,6 @@ Page({ ...privacyMethods, data: { title: '我的拼豆图纸', labels: true, bus
             return;
         this.setData({ busy: true });
         try {
-            if (this.data.source !== 'generated') {
-                let access = await api('status');
-                if (!access.unlocked) {
-                    const confirm = await wx.showModal({ title: '解锁今日下载', content: '看一次广告，解锁今日全部图纸下载。北京时间零点重置。', confirmText: '观看广告' });
-                    if (!confirm.confirm)
-                        return;
-                    const t = await api('challenge');
-                    await this.ad!.play();
-                    access = await api('redeem', { token: t.token, ended: true });
-                    if (!access.unlocked)
-                        throw Error('今日下载尚未解锁，请重试');
-                }
-            }
             if (!this.alive) return;
             if (!this.files.length)
                 this.files = await exportFiles(this, this.pattern, this.data.labels);
