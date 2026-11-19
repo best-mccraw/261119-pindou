@@ -1,1 +1,10 @@
-{"navigationBarTitleText":"拼豆图纸"}
+{
+  "navigationBarTitleText": "生成拼豆图纸",
+  "usingComponents": {
+    "ui-button": "../../components/ui-button/index",
+    "ui-card": "../../components/ui-card/index",
+    "ui-choice": "../../components/ui-choice/index",
+    "ui-input": "../../components/ui-input/index",
+    "ui-switch": "../../components/ui-switch/index"
+  }
+}

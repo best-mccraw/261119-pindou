@@ -48,10 +48,13 @@ AppID/环境 ID/广告位属于公开客户端配置。管理 SDK 密钥仅放�
 - 不提供离线模拟图库或广告成功。缺真实广告条件不能体验完整生成流程，仍可导入并免费浏览图库。
 
 ## 验证和交付
-- `npm test`：构建 + 21 项核心/页面/模拟云端测试。模拟平台不代表真实微信验证。
+- `npm test`：构建 + 24 项核心/页面/模拟云端测试。模拟平台不代表真实微信验证。
 - `npm run check`：TypeScript 检查。
 - `node scripts/render-check.cjs`：相同渲染函数生成本地 PNG 样张到 artifacts，可肉眼检查。
 - `node scripts/release-check.cjs`：检查 AppID、环境和广告位；当前占位配置应当失败，阻止误认为可发布。
 - [验收记录与剩余项](docs/acceptance.md)、[隐私说明草案](docs/privacy.md)、[官方资料复核](docs/platform-review.md)、[素材授权](docs/materials.md)。
 
 本项目没有进行任何云资源开通、正式数据导入、提审或发布。按验收表完成微信工具、真实手机、真实广告及一次试拼后，再评估提交审核。
+
+## 统一视觉与页面入口
+启动页为 pages/home/index，首页“生成拼豆图纸”进入 pages/create/index。全局配色规范见根目录《界面设计色彩统一提示词.txt》，实现变量与基础样式见 miniprogram/styles/theme.wxss；通用交互组件位于 miniprogram/components/ui-*。后续页面沿用此体系。首页主视觉使用用户提供的参考图中部区域，通过容器裁切显示；导航、按钮、尺寸、编号开关均为真实控件。参考图完整源文件含未展示的示意控件，但不作为点击区域。

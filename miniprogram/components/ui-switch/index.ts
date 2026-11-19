@@ -1,0 +1,1 @@
+Component({options:{multipleSlots:true,styleIsolation:'apply-shared'},properties:{checked:{type:Boolean,value:true},disabled:Boolean,label:String,description:String},methods:{change(e:WechatMiniprogram.SwitchChange){this.triggerEvent('change',{value:e.detail.value})}}});

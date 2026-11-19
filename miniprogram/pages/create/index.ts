@@ -6,7 +6,7 @@ import { RewardAd } from '../../services/ad';
 import { message } from '../../services/api';
 import { canvasNode } from '../../services/render';
 import { session } from '../../services/session';
-Page({ ...privacyMethods, data: { qualified: false, busy: false, path: '', width: '30', height: '30', presets: [15, 30, 50, 100], zoom: 1, dx: 0, dy: 0, status: '' }, ad: undefined as RewardAd | undefined, image: undefined as any, source: undefined as any, alive: true, drag: undefined as any,
+Page({ ...privacyMethods, data: { qualified: false, busy: false, path: '', width: '30', height: '30', presets: [30, 50, 100], custom: false, labels: true, zoom: 1, dx: 0, dy: 0, status: '' }, ad: undefined as RewardAd | undefined, image: undefined as any, source: undefined as any, alive: true, drag: undefined as any,
     onLoad() { this.alive = true; this.ad = new RewardAd(); }, onHide() { this.ad?.destroy(); this.ad = undefined; }, onShow() { if (!this.ad)
         this.ad = new RewardAd(); }, onUnload() { this.alive = false; this.ad?.destroy(); this.image = undefined; this.source = undefined; },
     async start() { if (this.data.busy)
@@ -84,7 +84,8 @@ Page({ ...privacyMethods, data: { qualified: false, busy: false, path: '', width
         this.setData({ cropHeight: Math.round(600 * d.height / d.width) });
     }
     catch { /* 输入尚未完成时保留已选图片 */ } },
-    field(e: any) { this.setData({ [e.currentTarget.dataset.key]: e.detail.value }); this.paint(); }, preset(e: any) { const n = String(e.currentTarget.dataset.n); this.setData({ width: n, height: n, dx: 0, dy: 0 }); this.paint(); }, zoom(e: any) { this.setData({ zoom: e.detail.value }); this.paint(); },
+    customSize() { this.setData({custom:true}); }, labels(e:any) { this.setData({labels:e.detail.value}); },
+    field(e: any) { this.setData({ custom:true, [e.currentTarget.dataset.key]: e.detail.value }); this.paint(); }, preset(e: any) { const n = String(e.currentTarget.dataset.n); this.setData({ width: n, height: n, custom:false, dx: 0, dy: 0 }); this.paint(); }, zoom(e: any) { this.setData({ zoom: e.detail.value }); this.paint(); },
     touchStart(e: any) { if (!this.source)
         return; const t = e.touches[0]; this.drag = { x: t.clientX, y: t.clientY, dx: this.data.dx, dy: this.data.dy }; }, touchMove(e: any) { if (!this.drag || this.data.busy)
         return; const t = e.touches[0], r = cropRect(this.source.width, this.source.height, Number(this.data.width) || 30, Number(this.data.height) || 30, this.data.zoom); this.setData({ dx: this.drag.dx - (t.clientX - this.drag.x) * r.width / 300, dy: this.drag.dy - (t.clientY - this.drag.y) * r.height / 300 }); this.paint(); },
@@ -99,6 +100,7 @@ Page({ ...privacyMethods, data: { qualified: false, busy: false, path: '', width
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, c.width, c.height);
         ctx.drawImage(this.image, r.x, r.y, r.width, r.height, 0, 0, c.width, c.height);
+        session.generatedLabels = this.data.labels;
         session.pattern = quantize(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, width, height);
         if (this.alive)
             wx.navigateTo({ url: '/pages/detail/index?source=generated' });

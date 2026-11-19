@@ -1,13 +1,21 @@
 <import src="../../templates/privacy.wxml"/>
-<view class="page">
- <view class="title">把喜欢的图案<br/>拼成自己的作品</view><view class="sub">一格一颗，尺寸由你决定。</view>
- <view wx:if="{{!path}}" class="hero"><image src="/assets/original-01.png" mode="aspectFit"/><view class="hint">从一张图片，开始一颗一颗的创作。</view></view>
- <button wx:if="{{!path}}" class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="start">{{qualified?'重新选择图片':'上传图片生成图纸'}}</button>
- <view class="fine">完整观看广告后选择图片。本轮调整、重新生成和保存无需重复观看。</view>
- <view class="section" hidden="{{!path}}"><view class="label">移动图片，留下想拼的部分</view><view class="crop" style="height:{{cropHeight || 600}}rpx"><canvas type="2d" id="crop" bindtouchstart="touchStart" catchtouchmove="touchMove"/></view><view class="row"><text class="hint">缩放</text><slider style="flex:1" min="1" max="4" step="0.1" value="{{zoom}}" activeColor="#237C66" bindchange="zoom"/></view><button class="secondary" bindtap="change" disabled="{{busy}}">更换图片</button><view class="hint">透明区域按白色处理。图片仅在本机处理。</view></view>
- <view class="section"><view class="label">选择图纸尺寸</view><view class="row wrap"><view wx:for="{{presets}}" wx:key="*this" class="chip {{width==item && height==item?'active':''}}" data-n="{{item}}" bindtap="preset">{{item}}×{{item}}</view></view><view class="row section"><input class="field" type="number" maxlength="3" value="{{width}}" placeholder="宽 10～100" data-key="width" bindinput="field"/><text>×</text><input class="field" type="number" maxlength="3" value="{{height}}" placeholder="高 10～100" data-key="height" bindinput="field"/><text>颗</text></view><view class="fine">尺寸越小，图案细节越少。每个维度为 10～100 的整数。</view></view>
- <button wx:if="{{path}}" class="primary" bindtap="generate" loading="{{busy}}" disabled="{{busy}}">生成预览</button><button wx:if="{{path}}" class="secondary" bindtap="newRound" disabled="{{busy}}">开始新的一轮（重新观看广告）</button><view class="status" wx:if="{{status}}">{{status}}</view><view class="notice">通用颜色编号，非品牌色号；实际选豆请对照颜色。</view>
+<view class="page create-page">
+ <view class="create-heading">把喜欢的图片，变成拼豆图纸 <text class="heading-heart">♡</text></view>
+ <view wx:if="{{!path}}" class="upload-panel">
+  <view class="upload-border"><view class="flower flower-top">✿</view><view class="flower flower-bottom">♡</view><view class="upload-picture"><view class="picture-dot"/><view class="picture-hill"/><view class="picture-plus">＋</view></view><view class="upload-action"><ui-button bindpress="start" loading="{{busy}}" disabled="{{busy}}">打开相册选择图片</ui-button></view><view class="upload-caption">选择一张喜欢的照片，开启创作</view></view>
+ </view>
+ <view hidden="{{!path}}" class="selected-panel section"><view class="surface"><view class="label">留下想拼的部分</view><view class="crop" style="height:{{cropHeight || 600}}rpx"><canvas type="2d" id="crop" bindtouchstart="touchStart" catchtouchmove="touchMove"/></view><view class="row crop-tools"><text class="hint">缩放</text><slider style="flex:1" min="1" max="4" step="0.1" value="{{zoom}}" activeColor="#F58FA7" bindchange="zoom"/></view><ui-button variant="secondary" bindpress="change" disabled="{{busy}}">更换图片</ui-button><view class="fine">拖动调整位置；透明区域按白色处理。</view></view></view>
+ <view class="section"><ui-card>
+  <view class="parameter-heading"><view class="parameter-heart">♥</view><view><view class="parameter-title">图纸参数</view><view class="hint">调整属于你的拼豆尺寸</view></view></view>
+  <view class="size-grid"><ui-choice wx:for="{{presets}}" wx:key="*this" active="{{!custom && width==item && height==item}}" data-n="{{item}}" bindpress="preset" disabled="{{busy}}">{{item}} × {{item}}</ui-choice><ui-choice active="{{custom}}" bindpress="customSize" disabled="{{busy}}">自定义</ui-choice></view>
+  <view class="small-size"><ui-choice active="{{!custom && width==15 && height==15}}" data-n="15" bindpress="preset" disabled="{{busy}}">小尺寸 15 × 15</ui-choice></view>
+  <view class="dimension-row"><text>宽度</text><ui-input value="{{width}}" placeholder="10～100" data-key="width" bindinput="field" disabled="{{busy}}"/><text>颗</text><text class="times">×</text><text>高度</text><ui-input value="{{height}}" placeholder="10～100" data-key="height" bindinput="field" disabled="{{busy}}"/><text>颗</text></view>
+  <view class="size-hint">每个维度为 10～100 的整数；尺寸越小，图案细节越少。</view>
+  <view class="parameter-divider"/><ui-switch checked="{{labels}}" label="网格上显示色号文字" description="方便按编号找到对应拼豆" disabled="{{busy}}" bindchange="labels"/>
+ </ui-card></view>
+ <view class="generate-action"><ui-button bindpress="generate" loading="{{busy}}" disabled="{{busy || !path || !qualified}}">开始生成图纸 →</ui-button></view>
+ <view class="status" wx:if="{{status}}">{{status}}</view><view class="ad-hint">完整观看广告后选择图片，本轮调整和保存不重复观看。</view><view class="fine disclaimer">通用颜色编号，非品牌色号；实际选豆请对照颜色。</view>
+ <view wx:if="{{path}}" class="new-round"><ui-button variant="secondary" bindpress="newRound" disabled="{{busy}}">开始新的一轮</ui-button></view>
+ <view class="create-footer">—　一格一颗，慢慢拼出小美好　—</view>
  <canvas type="2d" id="normalized" class="canvas-hidden"/><canvas type="2d" id="sample" class="canvas-hidden"/>
-</view>
-
-<template is="privacy" data="{{privacyVisible: privacyVisible}}"/>
+</view><template is="privacy" data="{{privacyVisible: privacyVisible}}"/>

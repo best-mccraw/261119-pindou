@@ -1,0 +1,1 @@
+<view class="ui-switch-row"><view><view class="ui-switch-label">{{label}}</view><view class="ui-switch-description">{{description}}</view></view><switch checked="{{checked}}" disabled="{{disabled}}" color="#F58FA7" bindchange="change" aria-label="{{label}}"/></view>

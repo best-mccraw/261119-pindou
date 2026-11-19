@@ -6,7 +6,7 @@ import { RewardAd } from '../../services/ad';
 import { exportFiles, renderFile } from '../../services/render';
 import { saveFile, removeFiles } from '../../services/album';
 Page({ ...privacyMethods, data: { title: '我的拼豆图纸', labels: true, busy: false, loading: true, error: false, preview: '', width: 0, height: 0, total: 0, counts: [] as Pattern['counts'], source: '', split: false }, pattern: undefined as Pattern | undefined, ad: undefined as RewardAd | undefined, files: [] as string[], previewFile: '', id: '', alive: true,
-    async onLoad(o: any) { this.alive = true; this.id = o.id || ''; this.setData({ source: o.source || 'library' }); this.ad = new RewardAd(); await this.load(); }, onUnload() { this.alive = false; this.ad?.destroy(); removeFiles([...this.files, this.previewFile]); },
+    async onLoad(o: any) { this.alive = true; this.id = o.id || ''; this.setData({ source: o.source || 'library', labels: o.source==='generated' ? session.generatedLabels !== false : true }); this.ad = new RewardAd(); await this.load(); }, onUnload() { this.alive = false; this.ad?.destroy(); removeFiles([...this.files, this.previewFile]); },
     async load() { this.setData({ loading: true, error: false }); try {
         let p: Pattern;
         if (this.data.source === 'generated') {

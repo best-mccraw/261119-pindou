@@ -1,0 +1,1 @@
+<button class="ui-button {{variant}}" disabled="{{disabled || loading}}" loading="{{loading}}" hover-class="button-hover" bindtap="press"><slot/></button>

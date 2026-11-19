@@ -1,0 +1,1 @@
+Component({options:{multipleSlots:true,styleIsolation:'apply-shared'},properties:{variant:{type:String,value:'primary'},disabled:Boolean,loading:Boolean},methods:{press(){if(!this.data.disabled&&!this.data.loading)this.triggerEvent('press')}}});

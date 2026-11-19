@@ -3,3 +3,5 @@
 作者记录：本项目程序化原创；授权：CC0-1.0，可复制、修改、商用，不提供商标权。
 逐张名称、尺寸、格子与来源记录见 data/patterns.json；封面见 data/covers。
 运营新增内容必须维护 source.author、source.license、source.record，确认拥有图纸和封面的使用权后再上架。普通图片不能作为结构化图纸导入。
+
+首页主视觉 miniprogram/assets/home-reference.png 由用户于本次对话提供，作为品牌界面参考图使用；不作为图库下载图纸，不包含结构化用豆数据。授权来源记录：用户主动提供并指定用于其首页。
