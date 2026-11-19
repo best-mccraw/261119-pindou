@@ -1,0 +1,20 @@
+const fs = require('node:fs');
+const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+const { draw, layout } = require('../build/services/render');
+const { fromCells } = require('../build/core/pattern');
+const data = require('../data/patterns.json');
+const font = 'C:/Windows/Fonts/msyh.ttc';
+if (fs.existsSync(font))
+    GlobalFonts.registerFromPath(font, 'sans-serif');
+fs.mkdirSync('artifacts', { recursive: true });
+for (const labels of [true, false]) {
+    const p = fromCells(100, 100, data.find(x => x.width === 100).cells), l = layout(p, { x: 0, y: 0, w: 100, h: 100 });
+    const c = createCanvas(l.width, l.height);
+    draw(c.getContext('2d'), p, labels);
+    fs.writeFileSync(`artifacts/100x100-${labels ? 'labels' : 'colors'}.png`, c.toBuffer('image/png'));
+    console.log(`${l.width}x${l.height} PNG, labels=${labels}`);
+}
+// 全色表导出验证，覆盖最多32种颜色的统计布局。
+const p = fromCells(30, 30, Array.from({ length: 900 }, (_, i) => i % 32)), l = layout(p, { x: 0, y: 0, w: 30, h: 30 }), c = createCanvas(l.width, l.height);
+draw(c.getContext('2d'), p, true);
+fs.writeFileSync('artifacts/all-colors.png', c.toBuffer('image/png'));

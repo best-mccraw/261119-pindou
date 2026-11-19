@@ -1,0 +1,17 @@
+node_modules/
+build/
+project.private.config.json
+miniprogram/**/*.js
+cloudfunctions/api/core/
+# Local secrets and machine state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+.codex/
+# Reproducible render checks
+artifacts/

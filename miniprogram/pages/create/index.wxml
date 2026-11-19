@@ -1,0 +1,13 @@
+<import src="../../templates/privacy.wxml"/>
+<view class="page">
+ <view class="title">把喜欢的图案<br/>拼成自己的作品</view><view class="sub">一格一颗，尺寸由你决定。</view>
+ <view wx:if="{{!path}}" class="hero"><image src="/assets/original-01.png" mode="aspectFit"/><view class="hint">从一张图片，开始一颗一颗的创作。</view></view>
+ <button wx:if="{{!path}}" class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="start">{{qualified?'重新选择图片':'上传图片生成图纸'}}</button>
+ <view class="fine">完整观看广告后选择图片。本轮调整、重新生成和保存无需重复观看。</view>
+ <view class="section" hidden="{{!path}}"><view class="label">移动图片，留下想拼的部分</view><view class="crop" style="height:{{cropHeight || 600}}rpx"><canvas type="2d" id="crop" bindtouchstart="touchStart" catchtouchmove="touchMove"/></view><view class="row"><text class="hint">缩放</text><slider style="flex:1" min="1" max="4" step="0.1" value="{{zoom}}" activeColor="#237C66" bindchange="zoom"/></view><button class="secondary" bindtap="change" disabled="{{busy}}">更换图片</button><view class="hint">透明区域按白色处理。图片仅在本机处理。</view></view>
+ <view class="section"><view class="label">选择图纸尺寸</view><view class="row wrap"><view wx:for="{{presets}}" wx:key="*this" class="chip {{width==item && height==item?'active':''}}" data-n="{{item}}" bindtap="preset">{{item}}×{{item}}</view></view><view class="row section"><input class="field" type="number" maxlength="3" value="{{width}}" placeholder="宽 10～100" data-key="width" bindinput="field"/><text>×</text><input class="field" type="number" maxlength="3" value="{{height}}" placeholder="高 10～100" data-key="height" bindinput="field"/><text>颗</text></view><view class="fine">尺寸越小，图案细节越少。每个维度为 10～100 的整数。</view></view>
+ <button wx:if="{{path}}" class="primary" bindtap="generate" loading="{{busy}}" disabled="{{busy}}">生成预览</button><button wx:if="{{path}}" class="secondary" bindtap="newRound" disabled="{{busy}}">开始新的一轮（重新观看广告）</button><view class="status" wx:if="{{status}}">{{status}}</view><view class="notice">通用颜色编号，非品牌色号；实际选豆请对照颜色。</view>
+ <canvas type="2d" id="normalized" class="canvas-hidden"/><canvas type="2d" id="sample" class="canvas-hidden"/>
+</view>
+
+<template is="privacy" data="{{privacyVisible: privacyVisible}}"/>

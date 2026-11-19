@@ -1,0 +1,1 @@
+{"name":"pindou-mvp","version":"0.1.0","private":true,"scripts":{"build":"tsc && node scripts/prepare.cjs","test":"npm run build && node --test tests","check":"tsc --noEmit"},"devDependencies":{"@napi-rs/canvas":"^0.1.80","miniprogram-api-typings":"4.0.7","typescript":"5.7.3"}}

@@ -1,0 +1,15 @@
+const { test } = require('node:test');
+const a = require('node:assert/strict');
+const { config } = require('../build/config');
+const { fromCells } = require('../build/core/pattern');
+const { RewardAd } = require('../build/services/ad');
+const album = require('../build/services/album'), render = require('../build/services/render');
+function detail() { let page; global.Page = p => page = p; delete require.cache[require.resolve('../build/pages/detail/index')]; require('../build/pages/detail/index'); page.data = { ...page.data }; page.setData = d => Object.assign(page.data, d); page.pattern = fromCells(15, 15, Array(225).fill(0)); page.alive = true; page.files = []; return page; }
+test('图库取消广告不导出；完成后自动保存，保存失败不撤销当日资格', async () => { config.cloudEnv = 'test'; let unlocked = false, saves = 0, ads = 0, exports = 0, failSave = true; const calls = []; global.wx = { showModal: async () => ({ confirm: true }), showToast() { }, cloud: { callFunction: async ({ data }) => { calls.push(data.action); return { result: { ok: true, data: data.action === 'status' ? { unlocked } : data.action === 'challenge' ? { token: 'bound' } : (unlocked = true, { unlocked: true }) } }; } } }; const p = detail(); p.ad = { play: async () => { ads++; throw Error('提前关闭'); } }; album.saveFile = async () => { saves++; if (failSave)
+    throw Error('相册失败'); }; render.exportFiles = async () => { exports++; return ['tmp.png']; }; await p.save(); a.equal(unlocked, false); a.equal(exports, 0); p.ad = { play: async () => { ads++; } }; await p.save(); a.equal(unlocked, true); a.equal(saves, 1); failSave = false; await p.save(); a.equal(saves, 2); a.equal(ads, 2); a.equal(p.data.busy, false); a.deepEqual(calls, ['status', 'challenge', 'status', 'challenge', 'redeem', 'status']); config.cloudEnv = 'YOUR_CLOUD_ENV'; });
+test('免费放大查看关闭系统下载菜单，不能出现广告外显式保存入口', () => { let options; global.wx = { previewImage: o => options = o }; const p = detail(); p.data.preview = 'preview.png'; p.zoom(); a.equal(options.showmenu, false); });
+test('生成本轮从详情返回后，调整尺寸重新生成不触发广告；取消选图保留资格', async () => { let page; global.Page = p => page = p; require('../build/pages/create/index'); page.data = { ...page.data, qualified: true }; page.setData = d => Object.assign(page.data, d); let ads = 0; page.ad = { play: async () => ads++ }; page.alive = true; page.choose = async () => { }; await page.start(); a.equal(ads, 0); a.equal(page.data.qualified, true); page.preset({ currentTarget: { dataset: { n: 50 } } }); a.equal(page.data.width, '50'); a.equal(page.data.qualified, true); });
+test('隐私模板明确传递可见状态对象', () => { const fs = require('node:fs'); for (const n of ['create', 'library', 'detail'])
+    a.ok(fs.readFileSync(`miniprogram/pages/${n}/index.wxml`, 'utf8').includes('data="{{privacyVisible: privacyVisible}}"')); });
+test('页面在导出期间退出后不再调用相册保存',async()=>{global.wx={showToast(){}};const p=detail();p.data.source='generated';let saves=0;render.exportFiles=async()=>{p.alive=false;return['tmp.png']};album.removeFiles=async()=>{};album.saveFile=async()=>saves++;await p.save();a.equal(saves,0)});
+
