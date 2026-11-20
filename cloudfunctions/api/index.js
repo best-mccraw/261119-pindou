@@ -35,6 +35,13 @@ exports.main = async (event) => {
                 condition._id = _.gt(String(event.cursor).slice(0, 80));
             const r = await db.collection('patterns').where(condition).field({ _id: true, name: true, width: true, height: true, cover: true }).orderBy('_id', 'asc').limit(13).get();
             const items = r.data.slice(0, 12).map(safeSummary);
+            // 保持云存储私有，仅给本次已上架图纸的封面签发临时读取链接。
+            const fileList=items.map(x=>x.cover).filter(x=>typeof x==='string' && /^cloud:\/\/[^/]+\/covers\/[A-Za-z0-9_-]+\.(png|jpe?g|webp)$/.test(x));
+            if(fileList.length){
+                const signed=await cloud.getTempFileURL({fileList});
+                const urls=new Map(signed.fileList.map(x=>[x.fileID,x.status===0?x.tempFileURL:'']));
+                items.forEach(x=>{if(urls.has(x.cover))x.cover=urls.get(x.cover)});
+            }
             return { ok: true, data: { items, next: r.data.length > 12 ? items[items.length - 1]._id : '' } };
         }
         if (action === 'detail') {

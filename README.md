@@ -29,7 +29,7 @@ AppID/环境 ID/广告位属于公开客户端配置。管理 SDK 密钥仅放�
 ## 云端部署
 1. 创建 `patterns`、`unlocks`、`challenges` 集合。每个集合的自定义安全规则设置为 `cloudfunctions/database.rules.json`（客户端读写均 false），读写仅经云函数。测试别使用“所有用户可写”。
 2. 图库查询按 status + _id 升序分页，尺寸筛选增加 width、height。按控制台提示建立组合索引：`status,width,height,_id` 与 `status,_id`。名称/关键词在 searchText 做字面正则搜索，查询最多 13 条、返回 12 条，不下发整库 cells。首次上架量适合 MVP，规模增加时另评估全文检索。
-3. 云存储设置封面文件可公开读取、客户端不可上传/修改；封面是公开原创素材，不存用户原图。
+3. 云存储保持私有；api 云函数仅为本次列表中的已上架图纸封面生成临时读取链接。数据库仅管理员可读写，小程序通过云函数读取图库。封面是公开原创素材，不存用户原图。
 4. `npm run build` 后，在微信工具右键 `cloudfunctions/api`，选择上传并部署并安装依赖。运行时选择当前受支持的 Node.js 18+，超时建议 15 秒。不要创建付费实例或未经确认升级套餐。
 5. 为 unlocks 的 expiresAt、challenges 的 expiresAt 配置平台支持的 TTL 清理。资格本身不依赖 TTL 是否及时删除。若当前环境没有 TTL，每天由运营手动运行 `node scripts/cleanup.cjs` 清理过期记录；上线前明确责任人。
 
@@ -62,3 +62,7 @@ AppID/环境 ID/广告位属于公开客户端配置。管理 SDK 密钥仅放�
 
 ## 统一视觉与页面入口
 启动页为 pages/home/index，首页“生成拼豆图纸”进入 pages/create/index。全局配色规范见根目录《界面设计色彩统一提示词.txt》，实现变量与基础样式见 miniprogram/styles/theme.wxss；通用交互组件位于 miniprogram/components/ui-*。后续页面沿用此体系。首页主视觉使用用户提供的参考图中部区域，通过容器裁切显示；导航、按钮、尺寸、编号开关均为真实控件。参考图完整源文件含未展示的示意控件，但不作为点击区域。
+
+## 当前真实云开发接入状态
+开发环境 pindou-dev-d8ghhp2zc376a0ec9 已连接。api 函数已部署；patterns集合采用ADMINONLY权限，已导入12张初始原创图纸及12张封面，已建立status+_id与status+width+height+_id索引。存储保持PRIVATE，列表接口为已上架封面签发临时链接，不需要将整个存储设为公开。数据库持久保存cloud://文件ID，不保存会过期的临时URL。
+33项本地回归通过；微信模拟器已实际验证列表、关键词搜索、尺寸筛选、自定义尺寸、空结果、游标查询、100×100详情数量、封面读取，以及列表和详情页面。手机图库保存仍待用户复测。未升级套餐，未发布小程序。
