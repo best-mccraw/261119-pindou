@@ -3,9 +3,9 @@ import { orientationTransform } from '../../core/orientation';
 import { dimensions, cropRect, quantize } from '../../core/pattern';
 import { selectPhoto } from '../../services/photo-picker';
 import { message } from '../../services/api';
-import { canvasNode } from '../../services/render';
+import { canvasNode, canvasBox, fitPreviewRect } from '../../services/render';
 import { session } from '../../services/session';
-Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '30', presets: [30, 50, 100], custom: false, labels: true, zoom: 1, dx: 0, dy: 0, status: '' }, image: undefined as any, source: undefined as any, alive: true, drag: undefined as any,
+Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '30', presets: [30, 50, 100], custom: false, labels: true, zoom: 1, dx: 0, dy: 0, status: '' }, image: undefined as any, source: undefined as any, alive: true, cropViewport: undefined as {width:number;height:number}|undefined, drag: undefined as {x:number;y:number;dx:number;dy:number;scale:number}|undefined,
     onLoad() { this.alive = true; },
     onUnload() { this.alive = false; this.image = undefined; this.source = undefined; },
     async start() {
@@ -39,7 +39,7 @@ Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '3
             nctx.drawImage(img, 0, 0, info.width, info.height);
             this.image = normalized;
             this.source = { width: o.width, height: o.height };
-            this.setData({ path: f.tempFilePath, zoom: 1, dx: 0, dy: 0 });
+            await new Promise<void>(resolve=>this.setData({path:f.tempFilePath,zoom:1,dx:0,dy:0},resolve));
             await this.paint();
         }
         catch (e: any) {
@@ -59,23 +59,50 @@ Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '3
     } },
     async paint() { if (!this.image || !this.source)
         return; try {
-        const d = dimensions(this.data.width, this.data.height), c = await canvasNode(this, '#crop');
-        const width = 320, height = 320 * d.height / d.width;
+        const d = dimensions(this.data.width, this.data.height), box = await canvasBox(this, '#crop'), c=box.canvas;
+        if(!box.width || !box.height) return;
+        const width = Math.round(box.width), height = Math.round(box.height);
         c.width = width;
         c.height = height;
+        this.cropViewport={width:box.width,height:box.height};
         const r = cropRect(this.source.width, this.source.height, d.width, d.height, this.data.zoom, this.data.dx, this.data.dy);
         const ctx = c.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(this.image, r.x, r.y, r.width, r.height, 0, 0, width, height);
-        this.setData({ cropHeight: Math.round(600 * d.height / d.width) });
+        ctx.fillStyle = '#FFF0F2';
+        ctx.fillRect(0,0,width,height);
+        const dest=fitPreviewRect(d.width,d.height,width,height);
+        ctx.fillStyle='white';ctx.fillRect(dest.x,dest.y,dest.width,dest.height);
+        ctx.drawImage(this.image,r.x,r.y,r.width,r.height,dest.x,dest.y,dest.width,dest.height);
     }
     catch { /* 输入尚未完成时保留已选图片 */ } },
     customSize() { this.setData({custom:true}); }, labels(e:any) { this.setData({labels:e.detail.value}); },
     field(e: any) { this.setData({ custom:true, [e.currentTarget.dataset.key]: e.detail.value }); this.paint(); }, preset(e: any) { const n = String(e.currentTarget.dataset.n); this.setData({ width: n, height: n, custom:false, dx: 0, dy: 0 }); this.paint(); }, zoom(e: any) { this.setData({ zoom: e.detail.value }); this.paint(); },
-    touchStart(e: any) { if (!this.source)
-        return; const t = e.touches[0]; this.drag = { x: t.clientX, y: t.clientY, dx: this.data.dx, dy: this.data.dy }; }, touchMove(e: any) { if (!this.drag || this.data.busy)
-        return; const t = e.touches[0], r = cropRect(this.source.width, this.source.height, Number(this.data.width) || 30, Number(this.data.height) || 30, this.data.zoom); this.setData({ dx: this.drag.dx - (t.clientX - this.drag.x) * r.width / 300, dy: this.drag.dy - (t.clientY - this.drag.y) * r.height / 300 }); this.paint(); },
+    touchStart(e:any) {
+        this.drag=undefined;
+        if(this.data.busy || !this.source || !this.cropViewport || e.touches.length!==1) return;
+        try {
+            const d=dimensions(this.data.width,this.data.height);
+            const r=cropRect(this.source.width,this.source.height,d.width,d.height,this.data.zoom,this.data.dx,this.data.dy);
+            const dest=fitPreviewRect(d.width,d.height,this.cropViewport.width,this.cropViewport.height);
+            if(dest.width<=0) return;
+            this.drag={x:e.touches[0].clientX,y:e.touches[0].clientY,
+                dx:r.x-(this.source.width-r.width)/2,dy:r.y-(this.source.height-r.height)/2,
+                scale:dest.width/r.width};
+        } catch { /* 参数输入未完成时不启动拖动 */ }
+    },
+    touchMove(e:any) {
+        if(!this.drag || this.data.busy) return;
+        if(e.touches.length!==1) { this.drag=undefined; return; }
+        const d=dimensions(this.data.width,this.data.height),touch=e.touches[0];
+        const r=cropRect(this.source.width,this.source.height,d.width,d.height,this.data.zoom,
+            this.drag.dx-(touch.clientX-this.drag.x)/this.drag.scale,
+            this.drag.dy-(touch.clientY-this.drag.y)/this.drag.scale);
+        const dx=r.x-(this.source.width-r.width)/2,dy=r.y-(this.source.height-r.height)/2;
+        this.setData({dx,dy});
+        // 每次以实际边界位置续接，避免拖过边界后要滑很远才能反向移动。
+        this.drag={...this.drag,x:touch.clientX,y:touch.clientY,dx,dy};
+        this.paint();
+    },
+    touchEnd() { this.drag=undefined; },
     async generate() { if (this.data.busy || !this.image)
         return; this.setData({ busy: true, status: '正在计算颜色与用豆数量…' }); try {
         const { width, height } = dimensions(this.data.width, this.data.height);

@@ -18,3 +18,5 @@ for (const labels of [true, false]) {
 const p = fromCells(30, 30, Array.from({ length: 900 }, (_, i) => i % 32)), l = layout(p, { x: 0, y: 0, w: 30, h: 30 }), c = createCanvas(l.width, l.height);
 draw(c.getContext('2d'), p, true);
 fs.writeFileSync('artifacts/all-colors.png', c.toBuffer('image/png'));
+const examples=[['tall-10x100',10,100],['wide-100x10',100,10],['full-100x100',100,100]];
+for(const [name,w,h]of examples){const p=fromCells(w,h,Array.from({length:w*h},(_,i)=>i%32)),l=layout(p,{x:0,y:0,w,h}),canvas=createCanvas(l.width,l.height);draw(canvas.getContext('2d'),p,true);fs.writeFileSync(`artifacts/${name}.png`,canvas.toBuffer('image/png'));console.log(`${name}: ${l.width}x${l.height}, legend columns ${l.legendColumns}`)}
