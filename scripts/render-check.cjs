@@ -2,13 +2,12 @@ const fs = require('node:fs');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
 const { draw, layout } = require('../build/services/render');
 const { fromCells } = require('../build/core/pattern');
-const data = require('../data/patterns.json');
 const font = 'C:/Windows/Fonts/msyh.ttc';
 if (fs.existsSync(font))
     GlobalFonts.registerFromPath(font, 'sans-serif');
 fs.mkdirSync('artifacts', { recursive: true });
 for (const labels of [true, false]) {
-    const p = fromCells(100, 100, data.find(x => x.width === 100).cells), l = layout(p, { x: 0, y: 0, w: 100, h: 100 });
+    const p = fromCells(100, 100, Array.from({ length: 10000 }, (_, i) => Math.floor(i / 100) % 32)), l = layout(p, { x: 0, y: 0, w: 100, h: 100 });
     const c = createCanvas(l.width, l.height);
     draw(c.getContext('2d'), p, labels);
     fs.writeFileSync(`artifacts/100x100-${labels ? 'labels' : 'colors'}.png`, c.toBuffer('image/png'));

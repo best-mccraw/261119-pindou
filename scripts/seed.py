@@ -22,13 +22,13 @@ def pattern(kind,x,y):
  return 30 if abs(x)+abs(y)<.8 and abs(x)+abs(y)>.35 else 0
 names=['小小爱心','阳光星芒','春日小花','一片新叶','奶油布丁','海面波纹','蓝色圆环','紫色蝴蝶','一颗柠檬','扬帆小船','脆甜萝卜','菱形徽章']
 sizes=[(15,15),(30,30),(50,50),(100,100),(20,30),(30,20),(15,15),(30,30),(50,50),(100,100),(24,36),(36,24)]
-Path('data/covers').mkdir(parents=True,exist_ok=True);Path('miniprogram/assets').mkdir(exist_ok=True)
+output = Path('artifacts/legacy-seed')
+(output / 'covers').mkdir(parents=True, exist_ok=True)
 items=[]
 for i,(name,(w,h)) in enumerate(zip(names,sizes)):
  cells=[pattern(i,(x+.5)/w*2-1,(y+.5)/h*2-1) for y in range(h) for x in range(w)]
- id=f'original-{i+1:02}';cover=f'data/covers/{id}.png';png(cover,w,h,cells)
- if i==0:png('miniprogram/assets/original-01.png',w,h,cells)
+ id=f'original-{i+1:02}';cover=(output / 'covers' / f'{id}.png').as_posix();png(cover,w,h,cells)
  counts=[{'index':j,'id':f'P{j+1:02}','hex':'#'+colors[j],'count':cells.count(j)} for j in set(cells)]
- items.append({'_id':id,'name':name,'keywords':['原创','几何',name],'searchText':'原创 几何 '+name,'width':w,'height':h,'paletteVersion':'generic-32-v1','cells':cells,'counts':counts,'cover':cover,'status':'published','source':{'author':'本项目程序化原创','license':'CC0-1.0','record':'docs/materials.md'}})
-Path('data/patterns.json').write_text(json.dumps(items,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
-print('Generated 12 original patterns and PNG covers')
+ items.append({'_id':id,'name':name,'keywords':['原创','几何',name],'searchText':'原创 几何 '+name,'width':w,'height':h,'paletteVersion':'generic-32-v1','cells':cells,'counts':counts,'cover':cover,'status':'draft','source':{'author':'本项目程序化原创','license':'CC0-1.0','record':'docs/materials.md'}})
+(output / 'patterns.json').write_text(json.dumps(items,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+print('Generated 12 archived example patterns under artifacts/legacy-seed')

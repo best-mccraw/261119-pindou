@@ -36,14 +36,14 @@ AppID/环境 ID/广告位属于公开客户端配置。管理 SDK 密钥仅放�
 每日资格使用 `getWXContext().OPENID` 的散列键和服务端 `Date.now()` 计算北京时间自然日。事务写入 uid+日期文档，重复请求幂等；资格与生成页面内存资格相互独立。挑战绑定身份和用途，三分钟失效，仅接受明确的 isEnded=true。广告只采用客户端完整播放事件，**不提供服务端防作弊保证**，不冒充不存在的签名验证。详情结构化数据本来就免费可读，广告是应用内正常保存流程的商业规则，无法防止截屏或技术提取。当前官方服务端广告验证能力仍需拥有后台权限者复核，见 docs/platform-review.md。
 
 ## 首批素材和导入
-12 张尺寸不同的原创几何图案，含可重复生成的结构化数据、PNG 封面和授权记录。生成：`python scripts/seed.py`；仅数据检查：`node scripts/import.cjs --check`。
+当前导入清单在 `data/patterns.json`，包含用户原创小猫及 `pindoutuzhi` 提供的 9 张原创图纸。运行 `node scripts/import.cjs --check` 校验数据。旧示例生成脚本仅在 `artifacts/legacy-seed` 输出草稿。
 
-导入需要管理 SDK（只用于本地管理）：`npm install --no-save @cloudbase/node-sdk`。在自己的安全终端设置 `CLOUDBASE_ENV_ID`、`TENCENTCLOUD_SECRETID`、`TENCENTCLOUD_SECRETKEY`，执行 `node scripts/import.cjs`。如使用临时凭证还需 TENCENTCLOUD_SESSIONTOKEN。脚本上传公开封面并按固定 ID 覆盖导入，可重复执行，不建后台页面。不要把密钥或带凭证的终端输出交给测试用户。
+导入需要管理 SDK（只用于本地管理）：`npm install --no-save @cloudbase/node-sdk`。在自己的安全终端设置 `CLOUDBASE_ENV_ID`、`TENCENTCLOUD_SECRETID`、`TENCENTCLOUD_SECRETKEY`，执行 `node scripts/import.cjs`。如使用临时凭证还需 TENCENTCLOUD_SESSIONTOKEN。脚本上传图库封面并按固定 ID 覆盖导入，可重复执行，不建后台页面。不要把密钥或带凭证的终端输出交给测试用户。
 
 新增图案沿用 data/patterns.json 格式；每格为 0～31 的色表索引，W×H 个，paletteVersion 固定 generic-32-v1，运营必须确认 source 授权。脚本重算统计并拒绝无效图纸。下架修改 status 为 draft；无需删素材。
 
 ## 实现细节与限制
-- 色表 32 色版本固定，P01～P32 是通用编号，不是品牌型号。区域 RGB 平均后转 OKLab，按平方距离选择最近颜色；没有随机抖动或白底删除。
+- 色表 32 色版本固定，P01～P32 是通用编号，不是品牌型号。区域 RGB 平均后转 OKLab；近中性灰（RGB 最大与最小通道差不超过 12）仅匹配黑白灰，其他颜色按颜色距离及低彩度过饱和惩罚选色；不改变色表，没有随机抖动或白底删除。
 - 输入每次一张，选择压缩路径后再检查 10MB、1200 万像素和最长边 12000；超限清楚拒绝。支持可解码格式，EXIF 八方向归一化，工作画布最长边 1600。目标裁剪区域等比缩放至每格 4×4 的采样画布，再按区域平均映射；这是一种受控重采样，不承诺与原始全分辨率逐像素积分完全相同。
 - 裁剪支持拖动与滑条缩放，不拉伸。原图、画布和生成图纸只在内存/平台临时目录，不写远程云端或用户长期文件目录。详情退出清理已知导出路径；选择器临时输入由微信临时文件机制回收。
 - 完整 PNG 每格 28px，100×100 通常 2912px 宽；高度随统计增加。设备导出失败时最多按 50×50 分图，每张附全局坐标与整图统计。用户会看到张数提醒。分图中途保存失败后重试会重新保存全部分图，可能产生相册副本。
@@ -64,5 +64,5 @@ AppID/环境 ID/广告位属于公开客户端配置。管理 SDK 密钥仅放�
 启动页为 pages/home/index，首页“生成拼豆图纸”进入 pages/create/index。全局配色规范见根目录《界面设计色彩统一提示词.txt》，实现变量与基础样式见 miniprogram/styles/theme.wxss；通用交互组件位于 miniprogram/components/ui-*。后续页面沿用此体系。首页主视觉使用用户提供的参考图中部区域，通过容器裁切显示；导航、按钮、尺寸、编号开关均为真实控件。参考图完整源文件含未展示的示意控件，但不作为点击区域。
 
 ## 当前真实云开发接入状态
-开发环境 pindou-dev-d8ghhp2zc376a0ec9 已连接。api 函数已部署；patterns集合采用ADMINONLY权限，已导入12张初始原创图纸及12张封面，已建立status+_id与status+width+height+_id索引。存储保持PRIVATE，列表接口为已上架封面签发临时链接，不需要将整个存储设为公开。数据库持久保存cloud://文件ID，不保存会过期的临时URL。
+开发环境 pindou-dev-d8ghhp2zc376a0ec9 已连接。api 函数已部署；patterns集合采用ADMINONLY权限，当前上架 10 张用户原创图纸（9 张新增和原有小猫），已删除 12 条初始示例记录，已建立status+_id与status+width+height+_id索引。存储保持PRIVATE，列表接口为已上架封面签发临时链接，不需要将整个存储设为公开。数据库持久保存cloud://文件ID，不保存会过期的临时URL。
 33项本地回归通过；微信模拟器已实际验证列表、关键词搜索、尺寸筛选、自定义尺寸、空结果、游标查询、100×100详情数量、封面读取，以及列表和详情页面。手机图库保存仍待用户复测。未升级套餐，未发布小程序。

@@ -18,10 +18,22 @@ export function dimensions(w: unknown, h: unknown) { const read = (v: unknown) =
     throw Error('宽高请填写 10～100 的整数'); return n; }; return { width: read(w), height: read(h) }; }
 function lab(rgb: number[]) { const [r, g, b] = rgb.map(v => { v /= 255; return v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); const l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b), m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969566 * b), s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b); return [.2104542553 * l + .793617785 * m - .0040720468 * s, 1.9779984951 * l - 2.428592205 * m + .4505937099 * s, .0259040371 * l + .7827717662 * m - .808675766 * s]; }
 const labs = palette.map(p => lab(p.rgb));
-export function nearest(rgb: number[]) { const v = lab(rgb); let best = 0, dist = Infinity; labs.forEach((p, i) => { const d = p.reduce((n, x, j) => n + (x - v[j]) ** 2, 0); if (d < dist) {
-    dist = d;
-    best = i;
-} }); return best; }
+// 中性灰只在黑白灰中匹配；低彩度颜色额外避免被放大为鲜艳色。
+// 只改变新图片的选色，不改变固定色表、色号或已保存的格子数据。
+export function nearest(rgb: number[]) {
+    const v = lab(rgb), chroma = Math.hypot(v[1], v[2]);
+    const neutral = Math.max(...rgb) - Math.min(...rgb) <= 12;
+    const saturationWeight = 10 * Math.max(0, 1 - chroma / .08);
+    let best = 0, dist = Infinity;
+    labs.forEach((p, i) => {
+        if (neutral && i > 3) return;
+        const excessChroma = Math.max(0, Math.hypot(p[1], p[2]) - chroma);
+        const d = p.reduce((n, x, j) => n + (x - v[j]) ** 2, 0)
+            + saturationWeight * excessChroma ** 2;
+        if (d < dist) { dist = d; best = i; }
+    });
+    return best;
+}
 export function fromCells(width: number, height: number, cells: number[]): Pattern { dimensions(width, height); if (cells.length !== width * height || cells.some(i => !Number.isInteger(i) || i < 0 || i >= 32))
     throw Error('图纸数据不完整，请重新加载'); const counts = palette.map((p, index) => ({ index, id: p.id, hex: p.hex, count: 0 })); cells.forEach(i => counts[i].count++); return { width, height, paletteVersion: PALETTE_VERSION, cells, counts: counts.filter(c => c.count) }; }
 export function quantize(data: Uint8ClampedArray, sw: number, sh: number, width: number, height: number) { dimensions(width, height); if (sw < width || sh < height || data.length !== sw * sh * 4)
