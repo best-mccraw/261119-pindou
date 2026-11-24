@@ -4,7 +4,7 @@
 初始示例已从当前导入清单移除，历史版本可在 Git 中查阅。当前图纸的名称、尺寸、格子与来源见 data/patterns.json，封面见 data/covers。
 运营新增内容必须维护 source.author、source.license、source.record，确认拥有图纸和封面的使用权后再上架。普通图片不能作为结构化图纸导入。
 
-首页主视觉 miniprogram/assets/home-reference.png 由用户于本次对话提供，作为品牌界面参考图使用；不作为图库下载图纸，不包含结构化用豆数据。授权来源记录：用户主动提供并指定用于其首页。
+首页主视觉源图 data/sources/home-reference.png（运行图片为 miniprogram/assets/home-hero.jpg） 由用户于本次对话提供，作为品牌界面参考图使用；不作为图库下载图纸，不包含结构化用豆数据。授权来源记录：用户主动提供并指定用于其首页。
 
 ## 用户原创小猫（2026-11-20）
 - 图纸 ID：user-cat-001；名称：软萌花纹小猫；尺寸：50×97。
