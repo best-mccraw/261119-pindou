@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const { fromCells } = require('../build/core/pattern');
 async function main() { const args = process.argv.slice(2), source = JSON.parse(fs.readFileSync('data/patterns.json', 'utf8')); for (const p of source) {
-    const v = fromCells(p.width, p.height, p.cells);
+    const v = fromCells(p.width, p.height, p.cells, p.paletteVersion);
     if (v.paletteVersion !== p.paletteVersion || v.counts.reduce((n, c) => n + c.count, 0) !== p.width * p.height)
         throw Error('Invalid pattern');
     p.counts = v.counts;

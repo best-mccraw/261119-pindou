@@ -11,8 +11,9 @@ export function fitPreviewRect(w:number,h:number,boxWidth:number,boxHeight:numbe
     return {x:(boxWidth-width)/2,y:(boxHeight-height)/2,width,height};
 }
 export function layout(p: Pattern, t: Tile) {
-    const cell=28,margin=56,top=90,width=Math.max(640,t.w*cell+margin*2);
-    const legendColumns=Math.max(1,Math.min(4,Math.floor((width-48)/270)));
+    const cell=28,margin=56,top=90,legendWidth=p.counts.length>32 ? Math.ceil(p.counts.length/16)*270+48 : 640,
+        width=Math.max(legendWidth,t.w*cell+margin*2);
+    const legendColumns=Math.max(1,Math.min(p.counts.length>32 ? 6 : 4,Math.floor((width-48)/270)));
     const legendRowHeight=58,legendStart=top+t.h*cell+76;
     const legendRows=Math.ceil(p.counts.length/legendColumns);
     return {cell,margin,top,width,legendColumns,legendRowHeight,legendStart,

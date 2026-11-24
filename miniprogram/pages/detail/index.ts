@@ -1,5 +1,5 @@
 import { privacyMethods } from '../../services/privacy-gate';
-import { Pattern, fromCells, PALETTE_VERSION } from '../../core/pattern';
+import { Pattern, fromCells } from '../../core/pattern';
 import { session } from '../../services/session';
 import { api, message } from '../../services/api';
 import { exportFiles, renderFile } from '../../services/render';
@@ -15,9 +15,7 @@ Page({ ...privacyMethods, data: { title: '我的拼豆图纸', labels: true, bus
         }
         else {
             const r = await api('detail', { id: this.id });
-            if (r.paletteVersion !== PALETTE_VERSION)
-                throw Error('此图纸需要更新版本后查看');
-            p = fromCells(r.width, r.height, r.cells);
+            p = fromCells(r.width, r.height, r.cells, r.paletteVersion);
             this.setData({ title: r.name });
         }
         this.pattern = p;

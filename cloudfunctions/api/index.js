@@ -1,7 +1,7 @@
 const cloud = require('wx-server-sdk');
 const crypto = require('node:crypto');
 const { dayKey, canRedeem } = require('./rules');
-const { fromCells, PALETTE_VERSION } = require('./core/pattern');
+const { fromCells, getPalette } = require('./core/pattern');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database(), _ = db.command;
 const safeSummary = x => ({ _id: x._id, name: x.name, width: x.width, height: x.height, cover: x.cover });
@@ -46,9 +46,10 @@ exports.main = async (event) => {
         }
         if (action === 'detail') {
             const p = await get('patterns', String(event.id || ''));
-            if (!p || p.status !== 'published' || p.paletteVersion !== PALETTE_VERSION)
+            if (!p || p.status !== 'published')
                 throw Error('unavailable');
-            const checked = fromCells(p.width, p.height, p.cells);
+            getPalette(p.paletteVersion);
+            const checked = fromCells(p.width, p.height, p.cells, p.paletteVersion);
             return { ok: true, data: { ...checked, name: p.name, _id: p._id } };
         }
         const key = uid + '_' + day;

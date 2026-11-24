@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const a = require('node:assert/strict');
 const vm = require('node:vm'), fs = require('node:fs');
-function server() { const store = { patterns: new Map(require('../data/patterns.json').map(x => [x._id, x])), unlocks: new Map(), challenges: new Map() }; let clock = Date.parse('2026-11-19T10:00:00Z'); const db = { command: { gt: v => ({ gt: v }) }, RegExp: ({ regexp, options }) => new RegExp(regexp, options), collection(name) { return { doc(id) { return { async get() { if (!store[name].has(id))
+function server() { const store = { patterns: new Map(JSON.parse(JSON.stringify(require('../data/patterns.json'))).map(x => [x._id, x])), unlocks: new Map(), challenges: new Map() }; let clock = Date.parse('2026-11-19T10:00:00Z'); const db = { command: { gt: v => ({ gt: v }) }, RegExp: ({ regexp, options }) => new RegExp(regexp, options), collection(name) { return { doc(id) { return { async get() { if (!store[name].has(id))
                 throw Object.assign(Error('document missing'), { errCode: -502005 }); return { data: store[name].get(id) }; }, async set({ data }) { store[name].set(id, data); }, async remove() { store[name].delete(id); } }; }, where(c) { return { field() { return this; }, orderBy() { return this; }, limit(n) { this.n = n; return this; }, async get() { return { data: [...store[name].values()].filter(p => Object.entries(c).every(([k, v]) => v instanceof RegExp ? v.test(p[k]) : v?.gt ? p[k] > v.gt : p[k] === v)).sort((a, b) => a._id.localeCompare(b._id)).slice(0, this.n) }; } }; } }; }, runTransaction: f => f(db) }; const cloud = { init() { }, DYNAMIC_CURRENT_ENV: 'test', database: () => db, getTempFileURL: async ({fileList})=>({fileList:fileList.map(fileID=>({fileID,tempFileURL:'https://covers.example/'+fileID.split('/').pop(),status:0}))}), getWXContext: () => ({ OPENID: 'platform-openid' }) }; const module = { exports: {} }; vm.runInNewContext(fs.readFileSync('cloudfunctions/api/index.js', 'utf8'), { require: n => n === 'wx-server-sdk' ? cloud : n === './rules' ? require('../cloudfunctions/api/rules') : n === './core/pattern' ? require('../build/core/pattern') : require(n), exports: module.exports, console, Date: class extends Date {
         static now() { return clock; }
     } }); return { call: module.exports.main, tick: n => clock += n, store }; }
@@ -9,3 +9,18 @@ test('云端首次用户未解锁；核销幂等；次日资格重置；不接�
 test('云端上架列表搜索按字面转义特殊字符', async () => { const s = server(); const p = await s.call({ action: 'list', q: '[', width: 0 }); a.equal(p.ok, true); a.equal(p.data.items.length, 0); const r = await s.call({ action: 'list', q: '星星', width: 30, height: 30 }); a.equal(r.data.items.length, 3); a.ok(r.data.items.every(x => !x.cells && !x.source)); });
 
 test('私有存储封面只通过已上架列表签发临时访问链接',async()=>{const s=server();s.store.patterns.get('user-cat-001').cover='cloud://env.bucket/covers/user-cat-001.png';s.store.patterns.get('user-cloud-001').status='draft';const r=await s.call({action:'list'});a.equal(r.ok,true);a.equal(r.data.items.find(x=>x._id==='user-cat-001').cover,'https://covers.example/user-cat-001.png');a.ok(!r.data.items.some(x=>x._id==='user-cloud-001'))});
+
+test('图库详情同时支持旧32色与新96色，旧数据逐格逐色保持一致',async()=>{
+ const s=server();
+ for(const old of require('../data/patterns.json')){
+  const result=await s.call({action:'detail',id:old._id});a.equal(result.ok,true);
+  a.equal(result.data.paletteVersion,old.paletteVersion);
+  a.deepEqual(JSON.parse(JSON.stringify(result.data.cells)),old.cells);
+  a.deepEqual(JSON.parse(JSON.stringify(result.data.counts)),old.counts);
+ }
+ const core=require('../build/core/pattern');
+ s.store.patterns.set('test-96',{_id:'test-96',status:'published',name:'96色',...core.fromCells(10,10,Array(100).fill(95))});
+ const result=await s.call({action:'detail',id:'test-96'});a.equal(result.ok,true);a.equal(result.data.counts[0].id,'P96');a.equal(result.data.paletteVersion,'generic-96-v1');
+ s.store.patterns.get('test-96').paletteVersion='generic-32-v1';a.equal((await s.call({action:'detail',id:'test-96'})).ok,false);
+ s.store.patterns.get('test-96').paletteVersion=undefined;a.equal((await s.call({action:'detail',id:'test-96'})).ok,false);
+});
