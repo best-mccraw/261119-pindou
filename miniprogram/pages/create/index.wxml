@@ -2,9 +2,10 @@
 <view class="page create-page">
  <view class="create-heading">把喜欢的图片，变成拼豆图纸 <text class="heading-heart">♡</text></view>
  <view wx:if="{{!path}}" class="upload-panel">
-  <view class="upload-border"><view class="flower flower-top">✿</view><view class="flower flower-bottom">♡</view><view class="upload-picture"><view class="picture-dot"/><view class="picture-hill"/><view class="picture-plus">＋</view></view><view class="upload-action"><ui-button bindpress="start" loading="{{busy}}" disabled="{{busy}}">打开相册选择图片</ui-button></view><view class="upload-caption">选择一张喜欢的照片，开启创作</view></view>
+  <view class="upload-border"><view class="flower flower-top">✿</view><view class="flower flower-bottom">♡</view><view class="upload-picture"><view class="picture-dot"/><view class="picture-hill"/><view class="picture-plus">＋</view></view><view class="upload-action"><ui-button bindpress="start" loading="{{busy}}" disabled="{{busy}}">打开相册选择图片</ui-button></view><view class="upload-caption">{{status || '所选图片将临时上传做内容安全检测'}}</view></view>
  </view>
  <view hidden="{{!path}}" class="selected-panel section"><view class="surface"><view class="label">留下想拼的部分</view><view class="crop"><canvas type="2d" id="crop" bindtouchstart="touchStart" catchtouchmove="touchMove" bindtouchend="touchEnd" bindtouchcancel="touchEnd"/></view><view class="row crop-tools"><text class="hint">缩放</text><slider style="flex:1" min="1" max="4" step="0.1" value="{{zoom}}" activeColor="#F58FA7" bindchange="zoom"/></view><ui-button variant="secondary" bindpress="change" disabled="{{busy}}">更换图片</ui-button><view class="fine">单指拖动选择区域，滑条调整缩放；透明区域按白色处理。</view></view></view>
+ <view class="section" wx:if="{{reviewPending}}"><ui-button variant="secondary" bindpress="continueReview" disabled="{{busy}}">继续等待图片检测</ui-button></view>
  <view class="section"><ui-card>
   <view class="parameter-heading"><view class="parameter-heart">♥</view><view><view class="parameter-title">图纸参数</view><view class="hint">调整属于你的拼豆尺寸</view></view></view>
   <view class="size-grid"><ui-choice wx:for="{{presets}}" wx:key="*this" active="{{!custom && width==item && height==item}}" data-n="{{item}}" bindpress="preset" disabled="{{busy}}">{{item}} × {{item}}</ui-choice><ui-choice active="{{custom}}" bindpress="customSize" disabled="{{busy}}">自定义</ui-choice></view>
@@ -14,7 +15,7 @@
   <view class="parameter-divider"/><ui-switch checked="{{labels}}" label="网格上显示色号文字" description="方便按编号找到对应拼豆" disabled="{{busy}}" bindchange="labels"/>
  </ui-card></view>
  <view class="generate-action"><ui-button bindpress="generate" loading="{{busy}}" disabled="{{busy || !path}}">开始生成图纸 →</ui-button></view>
- <view class="status" wx:if="{{status}}">{{status}}</view><view class="fine disclaimer">通用颜色编号，非品牌色号；实际选豆请对照颜色。</view>
+ <view class="status" wx:if="{{path && status}}">{{status}}</view><view class="fine disclaimer">通用颜色编号，非品牌色号；实际选豆请对照颜色。</view>
  <view wx:if="{{path}}" class="new-round"><ui-button variant="secondary" bindpress="newRound" disabled="{{busy}}">开始新的一轮</ui-button></view>
  <view class="create-footer">—　一格一颗，慢慢拼出小美好　—</view>
  <canvas type="2d" id="normalized" class="canvas-hidden"/><canvas type="2d" id="sample" class="canvas-hidden"/>

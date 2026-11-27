@@ -3,6 +3,7 @@ build/
 project.private.config.json
 miniprogram/**/*.js
 cloudfunctions/api/core/
+cloudfunctions/imageReviewEvents/image-review.js
 # Local secrets and machine state
 .env
 .env.*

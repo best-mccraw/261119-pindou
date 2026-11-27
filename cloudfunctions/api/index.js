@@ -2,8 +2,10 @@ const cloud = require('wx-server-sdk');
 const crypto = require('node:crypto');
 const { dayKey, canRedeem } = require('./rules');
 const { fromCells, getPalette } = require('./core/pattern');
+const { imageReview } = require('./image-review');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database(), _ = db.command;
+const review = imageReview(cloud, cloud.database({ throwOnNotFound: false }));
 const safeSummary = x => ({ _id: x._id, name: x.name, width: x.width, height: x.height, cover: x.cover });
 async function get(collection, id) { try {
     return (await db.collection(collection).doc(id).get()).data;
@@ -15,11 +17,17 @@ catch (e) {
 } }
 exports.main = async (event) => {
     try {
-        const { OPENID } = cloud.getWXContext();
+        const { OPENID, APPID } = cloud.getWXContext();
         if (!OPENID)
             throw Error('identity required');
         const now = Date.now(), day = dayKey(now), uid = crypto.createHash('sha256').update(OPENID).digest('hex');
         const action = event.action;
+        if (action === 'imageReviewStart') {
+            return { ok: true, data: await review.start(event.jpeg, uid, OPENID, APPID, now) };
+        }
+        if (action === 'imageReviewStatus') {
+            return { ok: true, data: await review.status(event.id, uid, APPID, now) };
+        }
         if (action === 'list') {
             const q = String(event.q || '').trim().slice(0, 40);
             let condition = { status: 'published' };

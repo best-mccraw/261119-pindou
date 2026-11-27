@@ -12,3 +12,4 @@ function walk(dir) { for (const e of fs.readdirSync(dir, { withFileTypes: true }
 walk('build');
 fs.mkdirSync('cloudfunctions/api/core', { recursive: true });
 fs.copyFileSync('build/core/pattern.js', 'cloudfunctions/api/core/pattern.js');
+fs.copyFileSync('cloudfunctions/api/image-review.js', 'cloudfunctions/imageReviewEvents/image-review.js');

@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "cleanupReviewImages",
+      "type": "timer",
+      "config": "0 */5 * * * * *"
+    }
+  ]
+}

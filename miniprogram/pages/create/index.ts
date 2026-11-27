@@ -2,12 +2,20 @@ import { privacyMethods } from '../../services/privacy-gate';
 import { orientationTransform } from '../../core/orientation';
 import { dimensions, cropRect, quantize } from '../../core/pattern';
 import { selectPhoto } from '../../services/photo-picker';
+import { startImageReview, checkImageReview, ImageReviewTimeout } from '../../services/image-review';
 import { message } from '../../services/api';
 import { canvasNode, canvasBox, fitPreviewRect } from '../../services/render';
 import { session } from '../../services/session';
-Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '30', presets: [30, 50, 100], custom: false, labels: true, zoom: 1, dx: 0, dy: 0, status: '' }, image: undefined as any, source: undefined as any, alive: true, cropViewport: undefined as {width:number;height:number}|undefined, drag: undefined as {x:number;y:number;dx:number;dy:number;scale:number}|undefined,
+interface PendingPhoto {
+    path: string;
+    image: WechatMiniprogram.Image;
+    info: WechatMiniprogram.GetImageInfoSuccessCallbackResult;
+    ticket: string;
+}
+
+Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '30', presets: [30, 50, 100], custom: false, labels: true, zoom: 1, dx: 0, dy: 0, status: '', reviewPending: false }, image: undefined as any, source: undefined as any, pendingPhoto: undefined as PendingPhoto | undefined, alive: true, cropViewport: undefined as {width:number;height:number}|undefined, drag: undefined as {x:number;y:number;dx:number;dy:number;scale:number}|undefined,
     onLoad() { this.alive = true; },
-    onUnload() { this.alive = false; this.image = undefined; this.source = undefined; },
+    onUnload() { this.alive = false; this.image = undefined; this.source = undefined; this.pendingPhoto = undefined; },
     async start() {
         if (this.data.busy) return;
         this.setData({ busy: true, status: '正在打开相册…' });
@@ -21,6 +29,8 @@ Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '3
             const r = await selectPhoto();
             if (!this.alive)
                 return;
+            this.pendingPhoto = undefined;
+            this.setData({ reviewPending: false });
             const f = r.tempFiles[0];
             if (f.size > 10 * 1024 * 1024)
                 throw Error('图片超过 10MB，请压缩后重试');
@@ -30,21 +40,59 @@ Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '3
             const c = await canvasNode(this, '#crop');
             const img = c.createImage();
             await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(Error('图片无法读取，请改用 JPEG 或 PNG')); img.src = f.tempFilePath; });
-            const normalized = await canvasNode(this, '#normalized');
-            const o = orientationTransform(info.width, info.height, info.orientation);
-            normalized.width = o.width;
-            normalized.height = o.height;
-            const nctx = normalized.getContext('2d');
-            nctx.setTransform(...o.matrix);
-            nctx.drawImage(img, 0, 0, info.width, info.height);
-            this.image = normalized;
-            this.source = { width: o.width, height: o.height };
-            await new Promise<void>(resolve=>this.setData({path:f.tempFilePath,zoom:1,dx:0,dy:0},resolve));
-            await this.paint();
+            if (!this.alive) return;
+            this.setData({ status: '正在检测图片，请稍候…' });
+            const sample = await canvasNode(this, '#sample');
+            const ticket = await startImageReview(this, img, sample, info, () => this.alive);
+            if (!this.alive || !ticket) return;
+            this.pendingPhoto = { path: f.tempFilePath, image: img, info, ticket };
+            await this.applyReviewedPhoto();
         }
         catch (e: any) {
             if (!String(e?.errMsg || '').includes('cancel'))
                 throw e;
+        }
+    },
+    async applyReviewedPhoto() {
+        const photo = this.pendingPhoto;
+        if (!photo) return;
+        try {
+            await checkImageReview(photo.ticket, () => this.alive);
+        } catch (error) {
+            if (this.alive && error instanceof ImageReviewTimeout) {
+                this.setData({ reviewPending: true });
+            } else {
+                this.pendingPhoto = undefined;
+                if (this.alive) this.setData({ reviewPending: false });
+            }
+            throw error;
+        }
+        if (!this.alive) return;
+        this.pendingPhoto = undefined;
+        this.setData({ reviewPending: false });
+        const normalized = await canvasNode(this, '#normalized');
+        if (!this.alive) return;
+        const { width, height, orientation } = photo.info;
+        const output = orientationTransform(width, height, orientation);
+        normalized.width = output.width;
+        normalized.height = output.height;
+        const context = normalized.getContext('2d');
+        context.setTransform(...output.matrix);
+        context.drawImage(photo.image, 0, 0, width, height);
+        this.image = normalized;
+        this.source = { width: output.width, height: output.height };
+        await new Promise<void>(resolve => this.setData({ path: photo.path, zoom: 1, dx: 0, dy: 0 }, resolve));
+        await this.paint();
+    },
+    async continueReview() {
+        if (this.data.busy || !this.pendingPhoto) return;
+        this.setData({ busy: true, status: '正在检测图片，请稍候…' });
+        try {
+            await this.applyReviewedPhoto();
+        } catch (error) {
+            if (this.alive) message(error);
+        } finally {
+            if (this.alive) this.setData({ busy: false, status: '' });
         }
     },
     async change() { if (this.data.busy)
@@ -52,10 +100,10 @@ Page({ ...privacyMethods, data: { busy: false, path: '', width: '30', height: '3
         await this.choose();
     }
     catch (e) {
-        message(e);
+        if (this.alive) message(e);
     }
     finally {
-        this.setData({ busy: false });
+        if (this.alive) this.setData({ busy: false, status: '' });
     } },
     async paint() { if (!this.image || !this.source)
         return; try {

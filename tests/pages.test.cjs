@@ -22,5 +22,32 @@ test('首次及再次选图都直接打开选择器，不依赖广告资格', as
 });
 test('隐私模板明确传递可见状态对象', () => { const fs = require('node:fs'); for (const n of ['create', 'library', 'detail'])
     a.ok(fs.readFileSync(`miniprogram/pages/${n}/index.wxml`, 'utf8').includes('data="{{privacyVisible: privacyVisible}}"')); });
+test('待检测图片不进入预览，继续等待查询原任务且只在通过后加载图片', async t => {
+    const moderation = require('../build/services/image-review');
+    let page;
+    global.Page = definition => { page = definition; };
+    const modulePath = require.resolve('../build/pages/create/index');
+    delete require.cache[modulePath];
+    require(modulePath);
+    page.data = { ...page.data };
+    page.setData = (data, done) => { Object.assign(page.data, data); done?.(); };
+    page.pendingPhoto = { path: 'candidate.jpg', image: {}, info: { width: 10, height: 10, orientation: 'up' }, ticket: 'first-ticket' };
+    page.paint = async () => {};
+    global.wx = { showToast() {} };
+    const canvas = { getContext: () => ({ setTransform() {}, drawImage() {} }) };
+    t.mock.method(render, 'canvasNode', async () => canvas);
+    let checks = 0;
+    t.mock.method(moderation, 'checkImageReview', async ticket => {
+        a.equal(ticket, 'first-ticket');
+        if (checks++ === 0) throw new moderation.ImageReviewTimeout();
+    });
+    await a.rejects(page.applyReviewedPhoto(), moderation.ImageReviewTimeout);
+    a.equal(page.data.path, '');
+    a.equal(page.data.reviewPending, true);
+    await page.continueReview();
+    a.equal(checks, 2);
+    a.equal(page.data.path, 'candidate.jpg');
+    a.equal(page.data.reviewPending, false);
+});
 test('页面在导出期间退出后不再调用相册保存',async()=>{global.wx={showToast(){}};const p=detail();p.data.source='generated';let saves=0;render.exportFiles=async()=>{p.alive=false;return['tmp.png']};album.removeFiles=async()=>{};album.saveFile=async()=>saves++;await p.save();a.equal(saves,0)});
 
